@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { DRACOLoader, GLTFLoader } from 'three/examples/jsm/Addons.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { bendFlame, createFlameGeometry, noise } from './assets/flamephysics';
+import { now } from 'three/examples/jsm/libs/tween.module.js';
 
 const MODEL_URL = "./happy-bday.glb";
 
@@ -172,13 +173,13 @@ startButton?.addEventListener('click', () => {
 
 // ANIMATION
 
-const clock = new THREE.Clock();
+const timer = new THREE.Timer();
 
 function animate() {
   requestAnimationFrame(animate);
-
-  const delta = clock.getDelta();
-  const t = clock.getElapsedTime();
+  timer.update();
+  const delta = timer.getDelta();
+  const t = timer.getElapsed();
 
   // Rotate the cake until the user starts the experience
   if (!started) {
