@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { DRACOLoader, GLTFLoader, HDRLoader } from 'three/examples/jsm/Addons.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { bendFlame, createFlameGeometry, noise } from './assets/flamephysics';
-
+import { initAudio, stopAudio } from './assets/blow';
 
 const MODEL_URL = "./happy-bday.glb";
 
@@ -174,6 +174,14 @@ startButton?.addEventListener('click', async () => {
   const clickSound = new Audio("./clicksound.mp3");
   clickSound.play().catch((err) => console.warn('Audio play failed:', err));
   started = true;
+
+  initAudio(() => {
+    if (!started || !flameGroup.visible || isBlowingOut) {
+        return;
+    } 
+    isBlowingOut = true;
+    blowOutProgress = 0;
+  });
   lobbyAudio.pause();
   
   canvas?.classList.remove('blur-xl', 'scale-105');
@@ -351,6 +359,7 @@ function animate() {
 
         bendFlame(outerFlame.geometry, 0, 0);
         bendFlame(innerFlame.geometry, 0, 0);
+        bendFlame(coreFlame.geometry, 0, 0);
 
         flameGroup.scale.set(1, 1, 1);
       }
