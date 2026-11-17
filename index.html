@@ -4,10 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="src/style.css">
+    <script type="module" src="src/main.ts" defer></script>
     <title>gf-bday-gift</title>
   </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="src/main.ts"></script>
+  <body class="flex justify-content items-center">
+    <button
+      id="start-button"
+      class="bg-pink-500 text-white rounded-3xl flex-1 p-4 hover:scale-101 hover:brightness-120 font-sans">
+        Happy bday-uh
+    </button>
+    <canvas id="app"></canvas>
   </body>
 </html>
