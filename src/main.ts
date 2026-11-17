@@ -1,8 +1,8 @@
 import * as THREE from 'three';
-import { DRACOLoader, GLTFLoader } from 'three/examples/jsm/Addons.js';
+import { DRACOLoader, GLTFLoader, HDRLoader } from 'three/examples/jsm/Addons.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import { bendFlame, createFlameGeometry, noise } from './assets/flamephysics';
-import { now } from 'three/examples/jsm/libs/tween.module.js';
+
 
 const MODEL_URL = "./happy-bday.glb";
 
@@ -11,6 +11,12 @@ const renderer = new THREE.WebGLRenderer({
   antialias: true,
   canvas
 });
+
+// Background music lol
+const lobbyAudio = new Audio('./lobbymusic.mp3');
+lobbyAudio.volume = 0.2;
+lobbyAudio.loop = true;
+lobbyAudio.play().catch((err) => console.warn('Audio play failed:', err));
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -23,7 +29,7 @@ const far = 1000;
 const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
 const scene = new THREE.Scene();
 
-// MODEL LOADING
+// load model yes
 
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath("https://www.gstatic.com/draco/versioned/decoders/1.5.7/");
@@ -147,19 +153,22 @@ controls.update();
 const introTarget = controls.target.clone();
 
 controls.enabled = false;
-
 let started = false;
 let transitionProgress = 0;
-
+scene.environmentIntensity = 0.25;
 const startButton = document.getElementById('start-button');
 
-startButton?.addEventListener('click', () => {
+
+
+const wait = (ms: number ) => new Promise((resolve) => setTimeout(resolve, ms));
+startButton?.addEventListener('click', async () => {
   if (started) {
     return;
   }
 
   started = true;
-
+  canvas?.classList.remove('blur-xl', 'scale-105');
+  canvas?.classList.add('blur-0', 'scale-100');
   startingCakeRotationY = gltf.scene.rotation.y;
 
   cakeRotationDelta =
@@ -167,8 +176,110 @@ startButton?.addEventListener('click', () => {
       initialCakeRotation.y - startingCakeRotationY + Math.PI,
       Math.PI * 2
     ) - Math.PI;
-
+  const introTitle = document.getElementById('intro-title');
+  introTitle?.classList.add('opacity-0', 'pointer-events-none');
   startButton.classList.add('opacity-0', 'pointer-events-none');
+  renderer.domElement.classList.add('blur-0', 'scale-100');
+  await wait(1400);
+  scene.environmentIntensity = 1.1;
+  const ambientLight = new THREE.AmbientLight(0xffe8cc, 0.75);
+  const keyLight = new THREE.DirectionalLight(0xfff1dc, 2.4);
+  keyLight.position.set(4, 7, 5);
+  const fillLight = new THREE.PointLight(0xffcf96, 12, 25);
+  fillLight.position.set(-4, 4, 3);
+
+  scene.add(ambientLight, keyLight, fillLight);
+  const count = 200;
+  const positions = new Float32Array(count * 3);
+  const velocities = new Float32Array(count * 3);
+  const colors = new Float32Array(count * 3);
+  const palette = [
+    new THREE.Color(0xff4d6d),
+    new THREE.Color(0xffbe0b),
+    new THREE.Color(0x3a86ff),
+    new THREE.Color(0x8338ec),
+    new THREE.Color(0x06d6a0),
+  ];
+
+  for (let i = 0; i < count; i++) {
+    // Start clustered right above the cake
+    positions[i * 3] = (Math.random() - 0.5) * 0.3;
+    positions[i * 3 + 1] = 1.8 + Math.random() * 0.3;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 0.3;
+
+    // Outward burst velocity
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 0.04 + Math.random() * 0.08;
+    velocities[i * 3] = Math.cos(angle) * speed;
+    velocities[i * 3 + 1] = 0.03 + Math.random() * 0.06;
+    velocities[i * 3 + 2] = Math.sin(angle) * speed;
+
+    const c = palette[Math.floor(Math.random() * palette.length)];
+    colors[i * 3] = c.r;
+    colors[i * 3 + 1] = c.g;
+    colors[i * 3 + 2] = c.b;
+  }
+
+  const geometry = new THREE.BufferGeometry();
+  const posAttr = new THREE.BufferAttribute(positions, 3);
+  geometry.setAttribute('position', posAttr);
+  geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+  const material = new THREE.PointsMaterial({
+    size: 0.14,
+    vertexColors: true,
+    transparent: true,
+    opacity: 1,
+  });
+  const confettiPop = new Audio("./confetti-pop-sound-effect.mp3");
+  confettiPop.play().catch((err) => console.warn('Audio play failed:', err));
+  const confettiPoints = new THREE.Points(geometry, material);
+  scene.add(confettiPoints);
+
+  // Animate bursting outward, drifting down, and fading out cleanly
+  await new Promise<void>((resolve) => {
+    let frame = 0;
+    const totalFrames = 140;
+
+    const animateConfetti = () => {
+      frame++;
+
+      for (let i = 0; i < count; i++) {
+        positions[i * 3] += velocities[i * 3];
+        positions[i * 3 + 1] += velocities[i * 3 + 1];
+        positions[i * 3 + 2] += velocities[i * 3 + 2];
+
+        // Gravity & air drag
+        velocities[i * 3] *= 0.97;
+        velocities[i * 3 + 1] -= 0.0022;
+        velocities[i * 3 + 2] *= 0.97;
+      }
+
+      posAttr.needsUpdate = true;
+
+      if (frame > 90) {
+        material.opacity = Math.max(0, 1 - (frame - 90) / (totalFrames - 90));
+      }
+
+      if (frame < totalFrames) {
+        requestAnimationFrame(animateConfetti);
+      } else {
+        resolve();
+      }
+    };
+
+    requestAnimationFrame(animateConfetti);
+  });
+  
+  scene.remove(confettiPoints);
+  geometry.dispose();
+  material.dispose();
+
+  await wait(1000);
+  const bdayAudio = new Audio('./happy-birthday.mp3');
+  bdayAudio.volume = 0.2;
+  bdayAudio.loop = true;
+  bdayAudio.play().catch((err) => console.warn('Audio play failed:', err));
 });
 
 // ANIMATION
@@ -183,7 +294,7 @@ function animate() {
 
   // Rotate the cake until the user starts the experience
   if (!started) {
-    gltf.scene.rotation.y += delta * 0.35;
+    gltf.scene.rotation.y += delta * 1.65;
   }
 
   // Transition the camera to its original position
@@ -202,12 +313,9 @@ function animate() {
       controls.target.copy(originalTarget);
       camera.lookAt(originalTarget);
 
-      console.log("Before OrbitControls:", camera.position.toArray());
-
       controls.enabled = true;
       controls.update();
 
-      console.log("After OrbitControls:", camera.position.toArray());
     }
   }
 
