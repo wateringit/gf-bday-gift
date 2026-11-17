@@ -1,5 +1,5 @@
 
-const BLOW_THRESHOLD = 0.1;
+const BLOW_THRESHOLD = 0.2;
 const BLOW_DURATION = 1000;
 
 let audioContext: AudioContext | null = null;
