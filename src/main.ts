@@ -17,7 +17,13 @@ const lobbyAudio = new Audio('./lobbymusic.mp3');
 lobbyAudio.volume = 0.2;
 lobbyAudio.loop = true;
 lobbyAudio.play().catch((err) => console.warn('Audio play failed:', err));
+const unmute = () => {
+  lobbyAudio.muted = false;
+  lobbyAudio.play().catch(() => {});
+};
 
+window.addEventListener('pointerdown', unmute, { once: true });
+window.addEventListener('keydown', unmute, { once: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 
@@ -165,8 +171,11 @@ startButton?.addEventListener('click', async () => {
   if (started) {
     return;
   }
-
+  const clickSound = new Audio("./clicksound.mp3");
+  clickSound.play().catch((err) => console.warn('Audio play failed:', err));
   started = true;
+  lobbyAudio.pause();
+  
   canvas?.classList.remove('blur-xl', 'scale-105');
   canvas?.classList.add('blur-0', 'scale-100');
   startingCakeRotationY = gltf.scene.rotation.y;
